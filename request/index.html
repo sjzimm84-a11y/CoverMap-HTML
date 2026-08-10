@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoverMap — Request a Field Report</title>
+<style>
+  :root {
+    --soil-900: #2A2018;
+    --soil-700: #4A3826;
+    --soil-500: #6B5438;
+    --parchment: #F2EBDD;
+    --parchment-dim: #E6DCC7;
+    --line: #C9BB9E;
+    --rz-low: #22C55E;
+    --rz-mod: #FACC15;
+    --rz-high: #F97316;
+    --rz-crit: #EF4444;
+    --ink: #241C14;
+    --error: #B3261E;
+    --mono: 'IBM Plex Mono', 'Courier New', monospace;
+    --serif: 'Source Serif 4', Georgia, serif;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--parchment);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.5;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(107,84,56,0.06) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(107,84,56,0.06) 40px);
+  }
+
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 24px 80px; }
+
+  header { padding: 48px 0 20px; }
+  .wordmark {
+    font-family: var(--serif);
+    font-size: 34px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--soil-900);
+    margin: 0;
+  }
+  .tagline {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--soil-500);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 6px 0 0;
+  }
+
+  /* Signature: risk-zone gradient strip, labeled — the actual classification the tool produces */
+  .riskstrip { margin: 28px 0 8px; border: 1px solid var(--soil-900); }
+  .riskstrip-bar { display: flex; height: 10px; }
+  .riskstrip-bar span { flex: 1; }
+  .riskstrip-labels {
+    display: flex; font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.05em; color: var(--soil-700);
+    padding: 6px 8px; justify-content: space-between; background: var(--parchment-dim);
+  }
+  .intro {
+    font-size: 15px; color: var(--soil-700); margin: 20px 0 0; max-width: 54ch;
+  }
+
+  form { margin-top: 40px; }
+
+  fieldset {
+    border: none; padding: 0; margin: 0 0 40px;
+  }
+  legend {
+    font-family: var(--mono); font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--soil-900); padding: 0 0 10px;
+    border-bottom: 1px solid var(--line); width: 100%; margin-bottom: 20px;
+  }
+
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block; font-size: 13px; font-weight: 600; color: var(--soil-900);
+    margin-bottom: 5px;
+  }
+  .field .hint { font-size: 12px; color: var(--soil-500); margin-top: 4px; }
+
+  input[type="text"], input[type="email"], input[type="tel"], input[type="number"],
+  input[type="date"], select {
+    width: 100%; padding: 10px 12px; font-size: 14px; font-family: var(--sans);
+    border: 1px solid var(--line); background: #fff; color: var(--ink);
+    border-radius: 3px;
+  }
+  input:focus, select:focus, .filebtn:focus-within {
+    outline: 2px solid var(--soil-500); outline-offset: 1px;
+  }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
+
+  .radiogrid { display: grid; gap: 8px; }
+  .radiocard {
+    border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px;
+    display: flex; gap: 10px; align-items: flex-start; cursor: pointer; background: #fff;
+  }
+  .radiocard:has(input:checked) { border-color: var(--soil-900); background: var(--parchment-dim); }
+  .radiocard input { margin-top: 3px; }
+  .radiocard .rc-title { font-size: 14px; font-weight: 600; }
+  .radiocard .rc-sub { font-size: 12px; color: var(--soil-500); margin-top: 2px; }
+
+  .filebtn {
+    border: 1px dashed var(--soil-500); border-radius: 3px; padding: 20px 14px;
+    text-align: center; background: #fff; cursor: pointer; display: block;
+  }
+  .filebtn span { display: block; font-size: 13px; color: var(--soil-700); }
+  .filebtn .fname { font-family: var(--mono); font-size: 12px; margin-top: 6px; color: var(--soil-900); }
+  input[type="file"] { display: none; }
+
+  .toggle-panel { display: none; margin-top: 12px; padding: 14px; border-left: 2px solid var(--soil-500); }
+  .toggle-panel.active { display: block; }
+
+  .checkline { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--soil-700); }
+  .checkline input { margin-top: 3px; }
+
+  button[type="submit"] {
+    width: 100%; padding: 15px; font-size: 14px; font-weight: 600;
+    font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em;
+    background: var(--soil-900); color: var(--parchment); border: none; border-radius: 3px;
+    cursor: pointer;
+  }
+  button[type="submit"]:hover { background: var(--soil-700); }
+  button[type="submit"]:disabled { opacity: 0.5; cursor: wait; }
+
+  #statusMsg { margin-top: 14px; font-size: 13px; padding: 10px 12px; border-radius: 3px; display: none; }
+  #statusMsg.ok { display: block; background: #E7F6EC; color: #14532D; border: 1px solid #86EFAC; }
+  #statusMsg.err { display: block; background: #FDECEC; color: var(--error); border: 1px solid #F3B4AE; }
+
+  footer { margin-top: 40px; font-size: 11px; color: var(--soil-500); font-family: var(--mono); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="wordmark">CoverMap</p>
+    <p class="tagline">Cover crop stand &amp; erosion risk report — Iowa</p>
+
+    <div class="riskstrip">
+      <div class="riskstrip-bar">
+        <span style="background:var(--rz-low)"></span>
+        <span style="background:var(--rz-mod)"></span>
+        <span style="background:var(--rz-high)"></span>
+        <span style="background:var(--rz-crit)"></span>
+      </div>
+      <div class="riskstrip-labels">
+        <span>Low</span><span>Moderate</span><span>High</span><span>Critical</span>
+      </div>
+    </div>
+
+    <p class="intro">Submit a field boundary and we'll return a satellite-based cover crop and erosion risk report for that field. Reports typically take a few business days.</p>
+  </header>
+
+  <form id="intakeForm">
+    <input type="hidden" name="_subject" value="CoverMap request">
+
+    <fieldset>
+      <legend>Contact</legend>
+      <div class="row2">
+        <div class="field">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" required>
+        </div>
+        <div class="field">
+          <label for="role">Role</label>
+          <select id="role" name="role" required>
+            <option value="">Select one</option>
+            <option value="cca">CCA</option>
+            <option value="producer">Producer</option>
+            <option value="nrcs">NRCS / Conservation Staff</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+          <div class="hint">Your report and any review notes go here.</div>
+        </div>
+        <div class="field">
+          <label for="phone">Phone (optional)</label>
+          <input type="tel" id="phone" name="phone">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Field</legend>
+      <div class="field">
+        <label for="fieldName">Field name or ID</label>
+        <input type="text" id="fieldName" name="fieldName" required placeholder="e.g. Home 80 - NW">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="county">County (if known)</label>
+          <input type="text" id="county" name="county">
+        </div>
+        <div class="field">
+          <label for="state">State</label>
+          <input type="text" id="state" name="state" required placeholder="e.g. IA">
+        </div>
+      </div>
+      <div class="field">
+        <label for="boundaryFile">Field boundary file</label>
+        <label class="filebtn" id="filebtnLabel" for="boundaryFile">
+          <span>Click to upload — GeoJSON, zipped Shapefile, or KML</span>
+          <span class="fname" id="fname"></span>
+        </label>
+        <input type="file" id="boundaryFile" name="boundaryFile" accept=".geojson,.json,.zip,.kml" required>
+        <div class="hint">One field per submission. Need to submit several fields? Send separate forms.</div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Tillage / residue system</legend>
+      <div class="radiogrid" id="residueGrid">
+        <label class="radiocard">
+          <input type="radio" name="residueSystem" value="no_till_corn" required>
+          <span><span class="rc-title">No-till corn</span><span class="rc-sub">~80% residue</span></span>
+        </label>
+        <label class="radiocard">
+          <input type="radio" name="residueSystem" value="no_till_soy">
+          <span><span class="rc-title">No-till soybeans</span><span class="rc-sub">~60% residue</span></span>
+        </label>
+        <label class="radiocard">
+          <input type="radio" name="residueSystem" value="conservation_tillage">
+          <span><span class="rc-title">Conservation tillage</span><span class="rc-sub">&gt;30% residue</span></span>
+        </label>
+        <label class="radiocard">
+          <input type="radio" name="residueSystem" value="conventional_tillage">
+          <span><span class="rc-title">Conventional tillage</span><span class="rc-sub">&lt;30% residue</span></span>
+        </label>
+        <label class="radiocard">
+          <input type="radio" name="residueSystem" value="unknown">
+          <span><span class="rc-title">Not sure</span><span class="rc-sub">We'll use a conservative default</span></span>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Imagery window</legend>
+      <div class="field">
+        <label>Default window</label>
+        <div id="defaultWindowDisplay" style="font-size:14px; padding:10px 12px; border:1px solid var(--line); background:#fff; border-radius:3px;"></div>
+        <div class="hint">April 5–25 is the recommended spring window. We'll use this unless you request something different below.</div>
+        <input type="hidden" id="windowStart" name="windowStart">
+        <input type="hidden" id="windowEnd" name="windowEnd">
+      </div>
+      <div class="field">
+        <label for="customWindowRequest">Need a different window? (optional)</label>
+        <input type="text" id="customWindowRequest" name="customWindowRequest" placeholder="e.g. last 14 days, or May 1&ndash;15, 2026">
+      </div>
+      <div class="field">
+        <label for="terminationDate">Cover crop termination date (optional)</label>
+        <input type="date" id="terminationDate" name="terminationDate">
+        <div class="hint">If termination happened before April 20, we narrow the imagery window to before that date.</div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Report</legend>
+      <div class="radiogrid">
+        <label class="radiocard">
+          <input type="radio" name="reportFormat" value="producer" checked>
+          <span><span class="rc-title">Producer summary</span><span class="rc-sub">Field-level erosion reduction, 2-page PDF</span></span>
+        </label>
+        <label class="radiocard">
+          <input type="radio" name="reportFormat" value="cca">
+          <span><span class="rc-title">CCA report</span><span class="rc-sub">Full zone-by-zone detail and maps</span></span>
+        </label>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label class="checkline">
+          <input type="checkbox" id="shpExport" name="shpExport">
+          <span>Also send a Shapefile export of the risk zone map</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <div class="field">
+        <label class="checkline">
+          <input type="checkbox" id="disclaimer" name="disclaimer" required>
+          <span>I understand CoverMap provides a field-average estimate for advisory use — not an official NRCS soil loss determination. <em>(v2.1, pending ISU Extension review)</em></span>
+        </label>
+      </div>
+    </fieldset>
+
+    <button type="submit" id="submitBtn">Submit request</button>
+    <div id="statusMsg"></div>
+  </form>
+
+  <footer>CoverMap v2.1 · Questions: reply to your confirmation email</footer>
+</div>
+
+<script>
+  // ---- CONFIG ---------------------------------------------------------
+  // Point this at the Flask intake agent's endpoint once it's deployed on Render.
+  // Until then, this can point at a Formspree (or similar) form ID as a placeholder
+  // so submissions still land in an inbox.
+  const ENDPOINT_URL = "https://formspree.io/f/mbgrgpyn";
+  // -----------------------------------------------------------------------
+
+  const form = document.getElementById('intakeForm');
+  const fileInput = document.getElementById('boundaryFile');
+  const fname = document.getElementById('fname');
+  const statusMsg = document.getElementById('statusMsg');
+  const submitBtn = document.getElementById('submitBtn');
+
+  fileInput.addEventListener('change', () => {
+    fname.textContent = fileInput.files.length ? fileInput.files[0].name : '';
+  });
+
+  // Default recommended imagery window: April 5–25 of the current year.
+  const currentYear = new Date().getFullYear();
+  const defaultStart = currentYear + '-04-05';
+  const defaultEnd = currentYear + '-04-25';
+  document.getElementById('windowStart').value = defaultStart;
+  document.getElementById('windowEnd').value = defaultEnd;
+  document.getElementById('defaultWindowDisplay').textContent =
+    'April 5 – April 25, ' + currentYear;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusMsg.className = '';
+    statusMsg.style.display = 'none';
+
+    const data = new FormData(form);
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting…';
+
+    try {
+      const res = await fetch(ENDPOINT_URL, {
+        method: 'POST',
+        body: data,
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!res.ok) throw new Error('Request failed (' + res.status + ')');
+      statusMsg.textContent = "Request received. You'll get your report by email.";
+      statusMsg.className = 'ok';
+      form.reset();
+      fname.textContent = '';
+      document.getElementById('windowStart').value = defaultStart;
+      document.getElementById('windowEnd').value = defaultEnd;
+    } catch (err) {
+      statusMsg.textContent = "Something went wrong submitting this — please try again or email your boundary file directly.";
+      statusMsg.className = 'err';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit request';
+    }
+  });
+</script>
+</body>
+</html>
